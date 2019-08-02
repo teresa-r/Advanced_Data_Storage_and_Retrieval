@@ -45,7 +45,7 @@ measurement_table=session.query(Measurement.date,Measurement.prcp).\
 
 #declear date for variable for last 12 month 
 
-last_year='2016-08-24'
+last_year='2016-08-23'
 
 ####################################################################################################################
 # Home page.
@@ -57,7 +57,8 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/station<br/>"
         f"/api/v1.0/tobs<br/>"
-        f"/api/v1.0/start_date/end_date"
+        f"/api/v1.0/<start><br/>"
+        f"/api/v1.0/<start>/<end>"
 
     )
 
@@ -73,52 +74,56 @@ def precipitation():
     #             group_by(Measurement.date).all()
 
 # Return the JSON representation of your dictionary.
-    all_prcp=list(np.ravel(prcp_results))
-    return jsonify (all_prcp)
+    return jsonify (prcp_results)
 
 
 
 ####################################################################################################################
 # /api/v1.0/stations
-# @app.route("/api/v1.0/station")
-# def station():
-#     station_result=session.query(Station.station, Station.name).all()
+@app.route("/api/v1.0/station")
+def station():
+    session=Session(engine)
+    station_results=session.query(Station.station, Station.name).all()
 
-# # Return a JSON list of stations from the dataset.
-#     return jsonify (station_result)
+# Return a JSON list of stations from the dataset.
+    all_stations=list(np.ravel(station_results))
+    return jsonify (all_stations)
     
 
 # ####################################################################################################################    
 # # /api/v1.0/tobs
-# @app.rounte("/api/v1.0/tobs")
-# # query for the dates and temperature observations from a year from the last data point.
-# def tobs():
-#     query_tobs=session.query(Measurement.station, Measurement.tobs).\
-#             filter(Measurement.station==top_station).\
-#             filter(Measurement.date>=query_period).all() 
-
-# # Return a JSON list of Temperature Observations (tobs) for the previous year.
-#     return jsonify (query_tobs)
+@app.route("/api/v1.0/tobs")
+# query for the dates and temperature observations from a year from the last data point.
+def tobs():
+    query_period=(dt.date(2017,8,23))-dt.timedelta(days=365)
+    session=Session(engine)
+    query_tobs=session.query(Measurement.date,Measurement.prcp).filter(Measurement.date>=query_period).order_by(Measurement.date).all()
+    
+# Return a JSON list of Temperature Observations (tobs) for the previous year.
+    return jsonify (query_tobs)
 
 
 
 # ####################################################################################################################
-# # /api/v1.0/<start> and /api/v1.0/<start>/<end>
+# # /api/v1.0/<start> 
 # # Return a JSON list of the minimum temperature, the average temperature, and the max temperature for a given start or start-end range.
 
 # # When given the start and the end date, calculate the TMIN, TAVG, and TMAX for dates between the start and end date inclusive.
-# @app.rounte("/api/v1.0/start_date/end_date")
-# # When given the start only, calculate TMIN, TAVG, and TMAX for all dates greater than and equal to the start date.
-# def start_date():
-#     return(f"")
+@app.route("/api/v1.0/<date>")
+# When given the start only, calculate TMIN, TAVG, and TMAX for all dates greater than and equal to the start date.
+def start_date(date):
 
+    cannonicalized=date.replace(" ", "").lower()
+    for charater in measurement_table:
+        search_date= charater["date"].replace(" ", "").lower()
 
-# ####################################################################################################################
-# @app.rounte("/api/v1.0/end_date")
-# # When given the start and the end date, calculate the TMIN, TAVG, and TMAX for dates between the start and end date inclusive.
-# def end_date():
-#     return(f"")
+        if search_date== cannonicalized:
+            return jsonify(charater)
+    
+    return jsonify({"error":f"Character with date{date} not found."}),404
 
+    # startDate=(dt.date(2017,8,23))-dt.timedelta(days=365)
+    # day_temp_results = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).filter(Measurement.date >= startDate).all()
 
 
 
